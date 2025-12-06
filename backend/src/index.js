@@ -20,12 +20,16 @@ const server = http.createServer(app);
 
 app.use(cookieParser());
 app.use(express.json());
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-  })
-);
+
+// فقط در توسعه CORS فعال باشه
+if (process.env.NODE_ENV !== "production") {
+  app.use(
+    cors({
+      origin: "http://localhost:5173",
+      credentials: true,
+    })
+  );
+}
 
 app.use("/api/auth", authRouter);
 app.use("/api/messages", messageRouter);
@@ -33,16 +37,22 @@ app.use("/api/messages", messageRouter);
 setupSocket(server);
 
 if (process.env.NODE_ENV === "production") {
-  const frontendPath = path.join(__dirname, "../frontend/dist");
+  const projectRoot = path.join(__dirname, "../..");
+  const frontendPath = path.join(projectRoot, "frontend", "dist");
+
+  console.log("Serving static files from:", frontendPath);
+
   app.use(express.static(frontendPath));
 
   app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(frontendPath, "index.html"));
+    const indexPath = path.join(frontendPath, "index.html");
+    res.sendFile(indexPath);
   });
 }
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log("Server running on PORT", PORT);
+  console.log("NODE_ENV =", process.env.NODE_ENV);
   connectMongoDB();
 });
